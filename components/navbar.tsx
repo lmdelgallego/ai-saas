@@ -2,6 +2,9 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
+import { Button } from "./ui/button";
+import { LogOut } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -28,12 +31,21 @@ export default function Navbar() {
 
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-            >
-              Logout
-            </button>
+            <Tooltip >
+              <TooltipTrigger>
+                <Button
+                  onClick={handleLogout}
+                  variant="ghost"
+                  size={"icon"}
+                  className="cursor-pointer hover:bg-transparent hover:text-red-600"
+                >
+                  <LogOut size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Logout</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
