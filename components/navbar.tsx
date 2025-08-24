@@ -1,17 +1,14 @@
 "use client";
 
-// import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
-  // const { user, signOut } = useAuth();
-  const user = {
-    email: "test@test.com",
-  };
+  const { user, signOut } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
-    // await signOut();
+    await signOut();
     router.push("/signin");
   };
 
