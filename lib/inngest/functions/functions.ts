@@ -1,2 +1,3 @@
+import scheduledNewsletterFunction from "@/lib/inngest/functions/scheduled-newsletter"
 
-export const functions = []
+export const functions = [scheduledNewsletterFunction]
