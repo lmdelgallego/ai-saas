@@ -1,5 +1,8 @@
 import { Article, fetchArticles } from "@/lib/news";
+import {marked} from 'marked'
+
 import { inngest } from "../client";
+import { sendEmail } from "@/lib/email";
 
 
 export default inngest.createFunction(
@@ -7,11 +10,9 @@ export default inngest.createFunction(
   { event: "newsletter.scheduled" },
   async ({ event, step, runId }) => {
       // Placeholder for the function logic
-      console.log("Scheduled Newsletter function triggered", event);
-      const categories = ["technology", "business", "science"];
+      const {email, frequency, categories} = event.data
 
       const allArticles = await step.run("fetch-news", async () => {
-
         return fetchArticles(categories);
       });
 
@@ -48,7 +49,22 @@ export default inngest.createFunction(
         }
       });
 
-      console.log("Summary generated", summary.choices[0].message.content);
+      const newsletterContent = summary.choices[0].message.content
+
+      if(!newsletterContent) {
+        throw new Error('Failed to generate newsletter content')
+      }
+
+      const htmlResult = await marked.parse(newsletterContent)
+
+      await step.run("send-email", async () => {
+        await sendEmail(
+          email,
+          categories.join(', '),
+          allArticles.length,
+          htmlResult
+        )
+      });
 
       return {}
 

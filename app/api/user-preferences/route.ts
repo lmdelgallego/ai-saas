@@ -7,7 +7,10 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return new Response('Unauthorized', { status: 401 });
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
   }
 
   const body = await req.json();
@@ -45,7 +48,11 @@ export async function POST(req: NextRequest) {
 
   await inngest.send({
     name: 'newsletter.scheduled',
-    data: {}
+    data: {
+      email,
+      frequency,
+      categories
+    }
   })
 
   return NextResponse.json(
@@ -55,4 +62,45 @@ export async function POST(req: NextRequest) {
     },
     { status: 200 }
   );
+}
+
+
+export async function GET() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const { data: preferences, error: fetchError } = await supabase.from('user_preferences').select('*').eq('user_id', user.id).single();
+
+    if(fetchError) {
+      console.error('Error fetching user preferences:', fetchError);
+      return NextResponse.json(
+        { error: 'Failed to fetch user preferences' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        preferences
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error fetching user preferences:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+
+
 }
