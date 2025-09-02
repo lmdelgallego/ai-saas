@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
   );
 }
 
-
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -102,5 +101,28 @@ export async function GET() {
     );
   }
 
+}
 
+export async function UPDATE(req: NextRequest) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return NextResponse.json(
+            {error: 'Unauthorized'},
+            { status: 401 }
+        )
+    }
+
+    try {
+        const body = await req.json();
+        const { active } = body;
+    }
+    catch (error) {
+        console.error('Error fetching user preferences:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
 }
