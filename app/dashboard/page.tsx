@@ -20,15 +20,52 @@ type UserPreferences = {
 export default function Dashboard() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
+  const fetchPreferences = async () => {
+    const res = await fetch("/api/user-preferences");
+    const data = await res.json();
+
+    setPreferences(data.preferences);
+  };
+
+
+  const handlePauseNewsletters = async () => {
+    const response = await fetch('/api/user-preferences', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        is_active: false
+      })
+    });
+
+    if(response.ok) {
+      setPreferences((prev) => (prev ? {...prev, is_active: false} : null));
+    }
+  }
+
+  const handleActivateNewsletters = async () => {
+
+    const response = await fetch('/api/user-preferences', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        is_active: true
+      })
+    });
+
+    if(response.ok) {
+      setPreferences((prev) => (prev ? {...prev, is_active: true} : null));
+    }
+  }
+
   useEffect(() => {
-    const fetchPreferences = async () => {
-      const res = await fetch("/api/user-preferences");
-      const data = await res.json();
-      console.log(data);
-      setPreferences(data.preferences);
-    };
     fetchPreferences();
   }, []);
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -110,20 +147,16 @@ export default function Dashboard() {
                 </Button>
 
                 {preferences?.is_active && (
-                  <Button variant="destructive" className="w-full" size="lg" asChild>
-                    <Link href="/delete">
-                      <Pause className="mr-2" size={16} />
-                      Pause Newsletters
-                    </Link>
+                  <Button variant="destructive" className="w-full" size="lg" onClick={handlePauseNewsletters}>
+                    <Pause className="mr-2" size={16} />
+                    Pause Newsletters
                   </Button>
                 )}
 
                 {!preferences?.is_active && (
-                  <Button variant="default" className="w-full" size="lg" asChild>
-                    <Link href="/delete">
-                      <Play className="mr-2" size={16} />
-                      Resume Newsletters
-                    </Link>
+                  <Button variant="positive" className="w-full" size="lg" onClick={handleActivateNewsletters}>
+                    <Play className="mr-2" size={16} />
+                    Activate Newsletters
                   </Button>
                 )}
 

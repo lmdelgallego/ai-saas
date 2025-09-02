@@ -103,7 +103,7 @@ export async function GET() {
 
 }
 
-export async function UPDATE(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -116,9 +116,31 @@ export async function UPDATE(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { active } = body;
-    }
-    catch (error) {
+        const { is_active } = body;
+
+        const { data, error: updateError } = await supabase
+        .from('user_preferences')
+        .update({ is_active })
+        .eq('user_id', user.id)
+        .single();
+
+        if (updateError) {
+            console.error('Error updating user preferences:', updateError);
+            return NextResponse.json(
+                { error: 'Failed to update user preferences' },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json(
+            {
+                success: true,
+                message: 'User preferences updated successfully'
+            },
+            { status: 200 }
+        );
+
+    } catch (error) {
         console.error('Error fetching user preferences:', error);
         return NextResponse.json(
             { error: 'Internal server error' },

@@ -66,6 +66,41 @@ export default inngest.createFunction(
         )
       });
 
+      await step.run("schedule-next", async () => {
+        const now = new Date();
+        let nextScheduledTime: Date;
+
+        switch (frequency) {
+          case 'daily':
+            // nextScheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+            nextScheduledTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            break;
+          case 'weekly':
+            // nextScheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 0, 0, 0);
+            nextScheduledTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'bi-weekly':
+            // nextScheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14, 0, 0, 0);
+            nextScheduledTime = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            nextScheduledTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            break;
+        }
+
+        nextScheduledTime.setHours(9, 0, 0, 0);
+
+        await inngest.send({
+          name: 'newsletter.scheduled',
+          data: {
+            email,
+            frequency,
+            categories
+          },
+          ts: nextScheduledTime.getTime(),
+        })
+      })
+
       return {}
 
     }
