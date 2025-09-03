@@ -1,3 +1,4 @@
+import { getFrequency } from "@/lib/frecuency";
 import { inngest } from "@/lib/inngest/client";
 import { createClient } from "@/lib/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -46,13 +47,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // CANCEL PREVIOUS SCHEDULE
+  await inngest.send({
+    name: 'newsletter.scheduled.deleted',
+    data: {
+      user_id: user.id
+    }
+  });
+
+  // SCHEDULE NEXT
   await inngest.send({
     name: 'newsletter.scheduled',
     data: {
       email,
       frequency,
-      categories
-    }
+      categories,
+      user_id: user.id
+    },
+    ts: getFrequency(frequency).getTime()
   })
 
   return NextResponse.json(
@@ -130,6 +142,40 @@ export async function PATCH(req: NextRequest) {
                 { error: 'Failed to update user preferences' },
                 { status: 500 }
             );
+        }
+
+        if(!is_active) {
+          await inngest.send({
+            name: 'newsletter.scheduled.deleted',
+            data: {
+              user_id: user.id
+            }
+          });
+        } else {
+          const { data: userPreferences, error } = await supabase.from('user_preferences')
+            .select('email, frequency, categories')
+            .eq('user_id', user.id)
+            .single();
+
+          if (error || !userPreferences) {
+            console.error('Error fetching user preferences:', error);
+            return NextResponse.json(
+              { error: 'Failed to fetch user preferences' },
+              { status: 500 }
+            );
+          }
+
+          const { email, frequency, categories } = userPreferences;
+          await inngest.send({
+            name: 'newsletter.scheduled',
+            data: {
+              email,
+              frequency,
+              categories,
+              user_id: user.id
+            },
+            ts: getFrequency(frequency).getTime()
+          });
         }
 
         return NextResponse.json(

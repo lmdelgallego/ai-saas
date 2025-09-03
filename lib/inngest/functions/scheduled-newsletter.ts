@@ -3,20 +3,43 @@ import {marked} from 'marked'
 
 import { inngest } from "../client";
 import { sendEmail } from "@/lib/email";
+import { createClient } from "@/lib/client";
+import { getFrequency } from "@/lib/frecuency";
 
 
 export default inngest.createFunction(
-  { id: "newsletter/scheduled" },
+  {
+    id: "newsletter/scheduled",
+    cancelOn: [
+      {
+        event: "newsletter.scheduled.deleted",
+        if: "async.data.user_id == event.data.user_id"
+      }
+    ]
+  },
   { event: "newsletter.scheduled" },
   async ({ event, step, runId }) => {
-      // Placeholder for the function logic
-      const {email, frequency, categories} = event.data
+
+      const { email, frequency, categories, user_id } = event.data
+
+      const isUserActive = await step.run("check-user-status", async () =>{
+        const supabase = await createClient();
+        const { data, error } = await supabase.from('user_preferences').select('is_active').eq('user_id', user_id).single();
+
+        if (error) {
+          return false;
+        }
+
+        return data?.is_active ?? false;
+      });
+
+      if(!isUserActive) {
+        return {};
+      }
 
       const allArticles = await step.run("fetch-news", async () => {
         return fetchArticles(categories);
       });
-
-      //GENERATE AI SUMMARY
 
       const summary = await step.ai.infer("summarize-news", {
         model: step.ai.models.openai({model: 'gpt-4o'}),
@@ -67,41 +90,27 @@ export default inngest.createFunction(
       });
 
       await step.run("schedule-next", async () => {
-        const now = new Date();
-        let nextScheduledTime: Date;
 
-        switch (frequency) {
-          case 'daily':
-            // nextScheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-            nextScheduledTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            break;
-          case 'weekly':
-            // nextScheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 0, 0, 0);
-            nextScheduledTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-            break;
-          case 'bi-weekly':
-            // nextScheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14, 0, 0, 0);
-            nextScheduledTime = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-            break;
-          default:
-            nextScheduledTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            break;
-        }
-
-        nextScheduledTime.setHours(9, 0, 0, 0);
+        const nextScheduledTime = getFrequency(frequency);
 
         await inngest.send({
           name: 'newsletter.scheduled',
           data: {
             email,
             frequency,
-            categories
+            categories,
+            user_id
           },
           ts: nextScheduledTime.getTime(),
         })
       })
 
-      return {}
+      return {
+        email,
+        frequency,
+        categories,
+        content: newsletterContent
+      }
 
     }
 );
